@@ -1,0 +1,125 @@
+---
+apiVersion: v1
+items:
+kind: List
+metadata: {}
+items:
+- apiVersion: apps.openshift.io/v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: vaughn-redcloud3-gs-uploading-files
+      chart: vaughn-redcloud3-gs-uploading-files-0.0.1
+      heritage: Tiller
+      release: vaughn-redcloud3-gs-uploading-files
+    name: vaughn-redcloud3-gs-uploading-files
+    namespace: __PROJECT__
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: vaughn-redcloud3-gs-uploading-files
+    template:
+      metadata:
+        labels:
+          app: vaughn-redcloud3-gs-uploading-files
+          release: vaughn-redcloud3-gs-uploading-files
+          deploymentconfig: vaughn-redcloud3-gs-uploading-files
+          version: v1
+      spec:
+        imagePullSecrets:
+        - name: docker-registry-credentials
+        containers:
+          - name: vaughn-redcloud3-gs-uploading-files
+            image: "__IMAGE_TAG__"
+            imagePullPolicy: "Always"
+            ports:
+              - name: http
+                containerPort: 8080
+                protocol: TCP
+            livenessProbe:
+              tcpSocket:
+                port: http
+              initialDelaySeconds: 600
+              timeoutSeconds: 60
+            readinessProbe:
+              tcpSocket:
+                port: http
+            resources:
+              {}
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: vaughn-redcloud3-gs-uploading-files
+      chart: vaughn-redcloud3-gs-uploading-files-0.0.1
+      heritage: Tiller
+      release: vaughn-redcloud3-gs-uploading-files
+      version: v1
+    name: vaughn-redcloud3-gs-uploading-files
+    namespace: __PROJECT__
+  spec:
+    type: "ClusterIP"
+    ports:
+      - name: http
+        port: 80
+        protocol: TCP
+        targetPort: 8080
+    selector:
+      app: vaughn-redcloud3-gs-uploading-files
+      release: vaughn-redcloud3-gs-uploading-files
+
+- apiVersion: extensions/v1beta1
+  kind: Ingress
+  metadata:
+    annotations:
+      haproxy.router.openshift.io/timeout: 11m
+    labels:
+      app: __PROJECT__-vaughn-redcloud3-gs-uploading-files
+    name: __PROJECT__-vaughn-redcloud3-gs-uploading-files
+    namespace: istio-system
+  spec:
+    tls:
+    - hosts:
+      - "vaughn-redcloud3-gs-uploading-files.__PROJECT__.vaughn.perspectatechdemos.com"
+      secretName: "vaughn-perspectatechdemos-com-crt"
+    rules:
+    - host: vaughn-redcloud3-gs-uploading-files.__PROJECT__.vaughn.perspectatechdemos.com
+      http:
+        paths:
+        - path: /
+          backend:
+            serviceName: istio-ingressgateway
+            servicePort: 80
+
+- apiVersion: networking.istio.io/v1alpha3
+  kind: VirtualService
+  metadata:
+    name: vaughn-redcloud3-gs-uploading-files
+    namespace: __PROJECT__
+  spec:
+    hosts:
+    - "vaughn-redcloud3-gs-uploading-files.__PROJECT__.vaughn.perspectatechdemos.com"
+    gateways:
+    - __PROJECT__-istio-gateway
+    http:
+    - match:
+      - uri:
+          prefix: /
+      route:
+      - destination:
+          host: vaughn-redcloud3-gs-uploading-files
+          port:
+            number: 80
+
+- apiVersion: networking.istio.io/v1alpha3
+  kind: DestinationRule
+  metadata:
+    name: vaughn-redcloud3-gs-uploading-files
+    namespace: __PROJECT__
+  spec:
+    host: vaughn-redcloud3-gs-uploading-files
+    subsets:
+    - name: v1
+      labels:
+        version: v1            
